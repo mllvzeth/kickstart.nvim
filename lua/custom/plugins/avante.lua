@@ -1,30 +1,50 @@
--- Avante.nvim - AI-powered code assistance
+-- Avante.nvim - AI-powered code assistance with MCPHub integration
 return {
   'yetone/avante.nvim',
   event = 'VeryLazy',
   version = false, -- Use latest (set to "*" for stable releases only)
   build = 'make',
-  opts = {
-    -- Provider: "openai" | "claude" | "azure" | "gemini" | "cohere" | "copilot"
-    provider = 'claude',
-    claude = {
-      endpoint = 'https://api.anthropic.com',
-      model = 'claude-sonnet-4-20250514',
-      temperature = 0,
-      max_tokens = 4096,
-    },
-    -- Uncomment to use OpenAI instead:
-    -- provider = "openai",
-    -- openai = {
-    --   endpoint = "https://api.openai.com/v1",
-    --   model = "gpt-4o",
-    --   temperature = 0,
-    --   max_tokens = 4096,
-    -- },
-  },
+  config = function()
+    require('avante').setup {
+      -- Provider: "openai" | "claude" | "azure" | "gemini" | "cohere" | "copilot"
+      provider = 'claude',
+      claude = {
+        endpoint = 'https://api.anthropic.com',
+        model = 'claude-sonnet-4-20250514',
+        temperature = 0,
+        max_tokens = 4096,
+      },
+
+      -- MCPHub integration: inject MCP server state into system prompt
+      system_prompt = function()
+        local hub = require('mcphub').get_hub_instance()
+        return hub and hub:get_active_servers_prompt() or ''
+      end,
+
+      -- MCPHub custom tools for MCP server access
+      custom_tools = function()
+        return { require('mcphub.extensions.avante').mcp_tool() }
+      end,
+
+      -- Disable built-in tools that conflict with MCPHub's neovim server
+      disabled_tools = {
+        'list_files',
+        'search_files',
+        'read_file',
+        'create_file',
+        'rename_file',
+        'delete_file',
+        'create_dir',
+        'rename_dir',
+        'delete_dir',
+        'bash',
+      },
+    }
+  end,
   dependencies = {
     'nvim-lua/plenary.nvim',
     'MunifTanjim/nui.nvim',
+    'ravitemer/mcphub.nvim', -- MCPHub dependency
     -- Optional dependencies
     'nvim-telescope/telescope.nvim',
     'hrsh7th/nvim-cmp',
